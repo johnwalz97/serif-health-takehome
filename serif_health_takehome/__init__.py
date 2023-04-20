@@ -57,12 +57,7 @@ async def download_file(url: str):
                 for line in chunk.splitlines():
                     if line.startswith("{\"reporting_plans\""):
                         # take out the trailing comma
-                        try:
-                            data = json.loads(line[:-1])
-                        except json.JSONDecodeError:
-                            with open("error.json", "w") as f:
-                                f.write(line)
-                            raise
+                        data = json.loads(line[:-1])
 
                         if data["reporting_plans"][0]["plan_id_type"] != "EIN":
                             # skip non-EIN plans for now
@@ -82,11 +77,10 @@ async def download_file(url: str):
                             if file["description"].strip() == "Dental Vision":
                                 continue
 
-                            try:
-                                state_code = url.split("2023-04_")[1][:3]
-                            except IndexError:
+                            parts = url.split("2023-04_")
+                            if len(parts) == 1:
                                 print(file)
-                                raise
+                            state_code = parts[1][:3]
 
                             if state_code not in STATE_CODE_CROSSWALK:
                                 # download the file
@@ -108,7 +102,6 @@ async def download_file(url: str):
                                 print(file)
                                 print(state_code)
                                 print(STATE_CODE_CROSSWALK)
-                                raise
 
                 progress_bar.update(1024 * 1024)
 

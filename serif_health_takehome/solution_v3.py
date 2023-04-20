@@ -146,7 +146,7 @@ async def download_file(url: str):
                         input_queue.put(line[:-1])
 
                 # TODO: fix this
-                progress_bar.update(len(chunk) / 2)
+                progress_bar.update(len(chunk))
 
             progress_bar.close()
 

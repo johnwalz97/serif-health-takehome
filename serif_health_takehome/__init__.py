@@ -82,7 +82,11 @@ async def download_file(url: str):
                             if file["description"].strip() == "Dental Vision":
                                 continue
 
-                            state_code = url.split("2023-04_")[1][:3]
+                            try:
+                                state_code = url.split("2023-04_")[1][:3]
+                            except IndexError:
+                                print(file)
+                                raise
 
                             if state_code not in STATE_CODE_CROSSWALK:
                                 # download the file
@@ -97,8 +101,14 @@ async def download_file(url: str):
                                     if state_number not in STATE_CODE_CROSSWALK:
                                         STATE_CODE_CROSSWALK[state_number] = f["displayname"].split("2023-04_")[1][:2]
 
-                            if STATE_CODE_CROSSWALK[state_code] == "NY":
-                                ny_urls.add(url)
+                            try:
+                                if STATE_CODE_CROSSWALK[state_code] == "NY":
+                                    ny_urls.add(url)
+                            except KeyError:
+                                print(file)
+                                print(state_code)
+                                print(STATE_CODE_CROSSWALK)
+                                raise
 
                 progress_bar.update(1024 * 1024)
 

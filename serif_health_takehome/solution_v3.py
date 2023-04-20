@@ -22,7 +22,9 @@ async def process_ein(ein):
     async with ClientSession() as session:
         async with session.get(LOOKUP_URL.format(ein=ein)) as resp:
             if resp.status != 200:
-                raise RuntimeError(f"Failed to download file: {resp.status}")
+                # TODO actually handle this
+                print(f"Failed to download file: {resp.status}")
+                return urls
 
             text = await resp.text()
 

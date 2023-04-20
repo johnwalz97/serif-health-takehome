@@ -6,7 +6,6 @@ import multiprocessing
 import os
 import sys
 
-import requests
 from aiohttp import ClientSession, ClientTimeout
 from gzip_stream import AsyncGZIPDecompressedStream
 from tqdm import tqdm
@@ -17,18 +16,20 @@ LOOKUP_URL = (
 )
 
 
-def process_ein(ein):
+async def process_ein(ein):
     urls = set()
 
-    resp = requests.get(LOOKUP_URL.format(ein=ein))
-    if resp.status_code != 200:
-        print(resp.text)
-        raise RuntimeError(f"Failed to download file: {resp.status_code}")
+    async with ClientSession() as session:
+        async with session.get(LOOKUP_URL.format(ein=ein)) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"Failed to download file: {resp.status}")
 
-    if "_PPO_" not in resp.text:
-        return urls
+            text = await resp.text()
 
-    data = resp.json()
+            if "_PPO_" not in text:
+                return urls
+
+            data = await resp.json()
 
     key = "In-Network Negotiated Rates Files"
     if key in data:
@@ -47,7 +48,7 @@ def process_ein(ein):
     return urls
 
 
-def process_line(line):
+async def process_line(line):
     try:
         data = json.loads(line)
     except json.decoder.JSONDecodeError:
@@ -60,7 +61,7 @@ def process_line(line):
 
     ein = data["reporting_plans"][0]["plan_id"]
 
-    return process_ein(ein)
+    return await process_ein(ein)
 
 
 def worker(input_queue, identifier):
@@ -69,11 +70,12 @@ def worker(input_queue, identifier):
             line = input_queue.get()
             if line is None:
                 break
-            f.write("\n".join(process_line(line)))
+            urls = asyncio.run(process_line(line))
+            f.write("\n".join(urls))
 
 
 async def download_file(url: str):
-    input_queue = multiprocessing.Queue(maxsize=1000)
+    input_queue = multiprocessing.Queue(maxsize=5000)
     num_workers = multiprocessing.cpu_count()
     workers = [
         multiprocessing.Process(target=worker, args=(input_queue, i))

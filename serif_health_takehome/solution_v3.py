@@ -1,3 +1,5 @@
+"""This solution satisfies the requirements and uses multiprocessing to speed up the process"""
+
 import asyncio
 import json
 import multiprocessing
@@ -51,12 +53,13 @@ def process_line(line):
     return process_ein(ein)
 
 
-def worker(input_queue, output_queue):
+def worker(input_queue, output_queue, queue_semaphore):
     while True:
         line = input_queue.get()
         if line is None:
             break
         output_queue.put(process_line(line))
+        queue_semaphore.release()
 
 
 async def download_file(url: str):
@@ -64,12 +67,10 @@ async def download_file(url: str):
 
     input_queue = multiprocessing.Queue()
     output_queue = multiprocessing.Queue()
+    queue_semaphore = multiprocessing.Semaphore(500)  # Adjust this value as needed
 
     num_workers = multiprocessing.cpu_count()
-    workers = [
-        multiprocessing.Process(target=worker, args=(input_queue, output_queue))
-        for _ in range(num_workers)
-    ]
+    workers = [multiprocessing.Process(target=worker, args=(input_queue, output_queue, queue_semaphore)) for _ in range(num_workers)]
 
     for w in workers:
         w.start()
@@ -114,6 +115,7 @@ async def download_file(url: str):
                 # each line is a new "reporting_plans" object (except for the first few lines)
                 for line in chunk.splitlines():
                     if line.startswith('{"reporting_plans"'):
+                        queue_semaphore.acquire()
                         input_queue.put(line[:-1])
 
                 progress_bar.update(len(chunk))

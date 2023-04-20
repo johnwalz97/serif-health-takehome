@@ -1,3 +1,5 @@
+"""This solution is really fast but doesn't satisfy the requirements so I changed my strategy a bit in v2"""
+
 import asyncio
 import json
 import sys

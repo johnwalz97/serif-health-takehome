@@ -40,6 +40,10 @@ Note: This will take a while to run and will use about 6-7 GB of memory. If you 
 input_queue = multiprocessing.Queue(maxsize=5000) # changing this to like 1000 will use about 1-2 GBs of memory
 ```
 
+## Solution
+
+Solution is in ny_urls.txt in the root of the repo. This is just a plain text file with one url per line. There isn't any order to the urls.
+
 ## Solution Overview
 
 First things first, this is a very MVP solution. The code is very terse and hard to read. Its brittle and has very little validation or error handling. The goal that I had going into this was creating a fast solution. This took a bit longer than I expected and I ran up against the 2 hour mark.

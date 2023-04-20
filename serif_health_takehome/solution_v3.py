@@ -29,7 +29,7 @@ async def process_ein(ein):
             if "_PPO_" not in text:
                 return urls
 
-            data = await resp.json()
+            data = json.loads(text)
 
     key = "In-Network Negotiated Rates Files"
     if key in data:

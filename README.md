@@ -52,6 +52,7 @@ This slowed down everything quite a bit so I decided to tackle converting it to 
 
 A few changes I would make if this was a real production solution and I had more time:
 
+- Change my strategy based on figuring out that there are only 1536 unique file urls. Could make a lot of improvemnts to the performance!!!
 - Fix the progress bar to show the correct progress (right now it uses the total bytes of the compressed file instead of the total bytes of the uncompressed file so its off by a lot)
 - Use a more resilient solution for parsing the URLs to get the state information
 - Break out the code into more modular functions

@@ -158,9 +158,6 @@ async def download_file(url: str):
     for w in workers:
         w.join()
 
-    # ensure all tasks are done
-    input_queue.join()
-
     # collect urls into one file
     ny_urls = set()
 

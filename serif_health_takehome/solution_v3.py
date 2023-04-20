@@ -30,9 +30,19 @@ def process_ein(ein):
 
     data = resp.json()
 
-    for f in data["Blue Cross Blue Shield Association Out-of-Area Rates Files"]:
-        if f["displayname"].split("2023-04_")[1][:2]:
-            urls.add(f["url"])
+    key = "In-Network Negotiated Rates Files"
+    if key in data:
+        for f in data[key]:
+            if "NY_PPO" in f["displayname"]:
+                urls.add(f["url"])
+
+    key = "Blue Cross Blue Shield Association Out-of-Area Rates Files"
+    if key in data:
+        for f in data[key]:
+            if f["displayname"].split("2023-04_")[1][:2] == "NY":
+                urls.add(f["url"])
+
+    # don't think we need "Out-of-Network Allowed Amounts Files" but not sure
 
     return urls
 
@@ -53,24 +63,25 @@ def process_line(line):
     return process_ein(ein)
 
 
-def worker(input_queue, output_queue, queue_semaphore):
+def worker(input_queue, output_queue):
     while True:
         line = input_queue.get()
         if line is None:
             break
-        output_queue.put(process_line(line))
-        queue_semaphore.release()
+
+        urls = process_line(line)
+        for url in urls:
+            output_queue.put(url)
 
 
 async def download_file(url: str):
-    ny_urls = set()
-
     input_queue = multiprocessing.Queue()
     output_queue = multiprocessing.Queue()
-    queue_semaphore = multiprocessing.Semaphore(500)  # Adjust this value as needed
-
     num_workers = multiprocessing.cpu_count()
-    workers = [multiprocessing.Process(target=worker, args=(input_queue, output_queue, queue_semaphore)) for _ in range(num_workers)]
+    workers = [
+        multiprocessing.Process(target=worker, args=(input_queue, output_queue))
+        for _ in range(num_workers)
+    ]
 
     for w in workers:
         w.start()
@@ -115,24 +126,24 @@ async def download_file(url: str):
                 # each line is a new "reporting_plans" object (except for the first few lines)
                 for line in chunk.splitlines():
                     if line.startswith('{"reporting_plans"'):
-                        queue_semaphore.acquire()
                         input_queue.put(line[:-1])
 
                 progress_bar.update(len(chunk))
 
-            # Send sentinel values to terminate the workers
-            for _ in range(num_workers):
-                input_queue.put(None)
-
-            # Wait for all workers to finish
-            for w in workers:
-                w.join()
-
-            # Collect the results from the output queue
-            while not output_queue.empty():
-                ny_urls |= output_queue.get()
-
             progress_bar.close()
+
+    # Send sentinel values to terminate the workers
+    for _ in range(num_workers):
+        input_queue.put(None)
+
+    # Wait for all workers to finish
+    for w in workers:
+        w.join()
+
+    # collect urls into one file
+    ny_urls = set()
+    while not output_queue.empty():
+        ny_urls.add(output_queue.get())
 
     with open("ny_urls.txt", "w") as f:
         f.write("\n".join(ny_urls))

@@ -63,24 +63,27 @@ def process_line(line):
     return process_ein(ein)
 
 
-def worker(input_queue, output_queue):
-    while True:
-        line = input_queue.get()
-        if line is None:
-            break
+def worker(input_queue, identifier):
+    urls = set()
+    limit = 10000
 
-        urls = process_line(line)
-        for url in urls:
-            output_queue.put(url)
+    with open(f"ny_urls_{identifier}.txt", "a") as f:
+        while True:
+            line = input_queue.get()
+            if line is None:
+                break
+            urls = urls | process_line(line)
+            if len(urls) >= limit:
+                f.write("\n".join(urls))
+                urls = set()
 
 
 async def download_file(url: str):
     input_queue = multiprocessing.Queue()
-    output_queue = multiprocessing.Queue()
     num_workers = multiprocessing.cpu_count()
     workers = [
-        multiprocessing.Process(target=worker, args=(input_queue, output_queue))
-        for _ in range(num_workers)
+        multiprocessing.Process(target=worker, args=(input_queue, i))
+        for i in range(num_workers)
     ]
 
     for w in workers:
@@ -142,8 +145,12 @@ async def download_file(url: str):
 
     # collect urls into one file
     ny_urls = set()
-    while not output_queue.empty():
-        ny_urls.add(output_queue.get())
+
+    for filename in os.listdir("."):
+        if filename.startswith("ny_urls_"):
+            with open(filename, "r") as f:
+                ny_urls.update(f.read().splitlines())
+            os.remove(filename)
 
     with open("ny_urls.txt", "w") as f:
         f.write("\n".join(ny_urls))

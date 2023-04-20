@@ -34,6 +34,12 @@ poetry shell
 python serif_health_takehome/solution_v3.py
 ```
 
+Note: This will take a while to run and will use about 6-7 GB of memory. If you want to run it on a smaller machine, change this line in the `solution_v3.py` file:
+
+```python
+input_queue = multiprocessing.Queue(maxsize=5000) # changing this to like 1000 will use about 1-2 GBs of memory
+```
+
 ## Solution Overview
 
 First things first, this is a very MVP solution. The code is very terse and hard to read. Its brittle and has very little validation or error handling. The goal that I had going into this was creating a fast solution. This took a bit longer than I expected and I ran up against the 2 hour mark.
@@ -42,14 +48,14 @@ After getting a sample of the inputs and looking over the requirements, I decide
 
 It took me a bit to get the hang of how to figure out which files were for NY. I figured out that the files were the same between the index and the EIN lookup and that the EIN lookup had the display name which contained the state and the plan type. I then figured out that the files had a coding system for states which would allow me to skip looking up the EIN every time and instead progressively build a crosswalk dictionary between the state code and the state name. This way I could just loop through the files, check if the state code was NY and then add it to the set of NY files. Problem was that after doing this I realized that I had no way of figuring out which plans were PPOs. So I had to scrap that approach and go back to doing the EIN lookup everytime. I didn't look too hard into an alternative.
 
-This slowed down everything quite a bit so I decided to tackle converting it to a multi-processing solution. This sped things up quite a bit. You can see the evolution of my solutions in the different solution files. The final solution would have taken a couple hours to run on my local. I ran it on a digital ocean droplet and it finished in about 45 minutes. With a larger machine it should scale pretty well. On an AWS instance close to where the data is hosted, it would probably be even faster.
+This slowed down everything quite a bit so I decided to tackle converting it to a multi-processing solution. This sped things up quite a bit. You can see the evolution of my solutions in the different solution files. The final solution would have taken a few hours to run on my local. I ran it on a pretty large digital ocean droplet and it finished in about 25 minutes. On an AWS instance close to where the data is hosted, it would probably be much faster and I'd imagine I could get it down even more with some in-depth performance testing. At the end of the day the limit here is the fact that the file is gzipped and decompression is a sequential task as well as the network being bottlenecked by all the additional files that need to be downloaded.
 
 A few changes I would make if this was a real production solution and I had more time:
 
-- Fix the progress bar to show the correct progress (right now it uses the total bytes of the compressed file instead of the total bytes of the uncompressed file so its off by like 20-ish percent)
+- Fix the progress bar to show the correct progress (right now it uses the total bytes of the compressed file instead of the total bytes of the uncompressed file so its off by a lot)
 - Use a more resilient solution for parsing the URLs to get the state information
-- Use multi-processing to improve performance (this is actually done)
 - Break out the code into more modular functions
 - Add more validation and error handling
 - Make the approach work for other states and plan types
+- Don't write intermediate results to disk unless necessary
 - Use Kafka to create a true streaming data pipeline

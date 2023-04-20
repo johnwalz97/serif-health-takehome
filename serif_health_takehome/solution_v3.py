@@ -54,7 +54,9 @@ async def process_line(line):
     try:
         data = json.loads(line)
     except json.decoder.JSONDecodeError:
-        print(f"Failed to decode line: {line}")
+        print(f"Failed to decode line: {line[:500]}")
+        with open("failed_lines.txt", "a") as f:
+            f.write(line + "\n")
         return set()
 
     if data["reporting_plans"][0]["plan_id_type"] != "EIN":
@@ -66,18 +68,32 @@ async def process_line(line):
     return await process_ein(ein)
 
 
+async def process_multiple_lines(lines):
+    tasks = [process_line(line) for line in lines]
+    return await asyncio.gather(*tasks)
+
+
 def worker(input_queue, identifier):
     with open(f"ny_urls_{identifier}.txt", "a") as f:
         while True:
-            line = input_queue.get()
-            if line is None:
+            lines = []
+            for _ in range(5):
+                line = input_queue.get()
+                if line is None:
+                    continue
+                lines.append(line)
+
+            if not lines:
                 break
-            urls = asyncio.run(process_line(line))
-            f.write("\n".join(urls))
+
+            urls_lists = asyncio.run(process_multiple_lines(lines))
+
+            for urls in urls_lists:
+                f.write("\n".join(urls))
 
 
 async def download_file(url: str):
-    input_queue = multiprocessing.Queue(maxsize=5000)
+    input_queue = multiprocessing.Queue()
     num_workers = multiprocessing.cpu_count()
     workers = [
         multiprocessing.Process(target=worker, args=(input_queue, i))

@@ -64,18 +64,14 @@ def process_line(line):
 
 
 def worker(input_queue, identifier):
-    urls = set()
-    limit = 10000
-
     with open(f"ny_urls_{identifier}.txt", "a") as f:
         while True:
             line = input_queue.get()
             if line is None:
+                input_queue.task_done()
                 break
-            urls = urls | process_line(line)
-            if len(urls) >= limit:
-                f.write("\n".join(urls))
-                urls = set()
+            f.write("\n".join(process_line(line)))
+            input_queue.task_done()
 
 
 async def download_file(url: str):
@@ -142,6 +138,9 @@ async def download_file(url: str):
     # Wait for all workers to finish
     for w in workers:
         w.join()
+
+    # ensure all tasks are done
+    input_queue.join()
 
     # collect urls into one file
     ny_urls = set()

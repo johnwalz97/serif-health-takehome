@@ -80,6 +80,7 @@ async def download_file(url: str):
                             parts = url.split("2023-04_")
                             if len(parts) == 1:
                                 print(file)
+                                continue
                             state_code = parts[1][:3]
 
                             if state_code not in STATE_CODE_CROSSWALK:

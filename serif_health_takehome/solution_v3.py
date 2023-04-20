@@ -68,10 +68,8 @@ def worker(input_queue, identifier):
         while True:
             line = input_queue.get()
             if line is None:
-                input_queue.task_done()
                 break
             f.write("\n".join(process_line(line)))
-            input_queue.task_done()
 
 
 async def download_file(url: str):

@@ -75,7 +75,7 @@ def worker(input_queue, identifier):
 
 
 async def download_file(url: str):
-    input_queue = multiprocessing.Queue()
+    input_queue = multiprocessing.Queue(maxsize=1000)
     num_workers = multiprocessing.cpu_count()
     workers = [
         multiprocessing.Process(target=worker, args=(input_queue, i))

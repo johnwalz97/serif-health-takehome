@@ -77,7 +77,7 @@ def worker(input_queue, identifier):
     with open(f"ny_urls_{identifier}.txt", "a") as f:
         while True:
             lines = []
-            for _ in range(5):
+            for _ in range(100):
                 line = input_queue.get()
                 if line is None:
                     continue
@@ -145,7 +145,8 @@ async def download_file(url: str):
                     if line.startswith('{"reporting_plans"'):
                         input_queue.put(line[:-1])
 
-                progress_bar.update(len(chunk))
+                # TODO: fix this
+                progress_bar.update(len(chunk) / 2)
 
             progress_bar.close()
 

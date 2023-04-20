@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "serif-health-takehome"
+version = "0.1.0"
+description = ""
+authors = ["John Walz <johnwalz97@gmail.com>"]
+readme = "README.md"
+packages = [{include = "serif_health_takehome"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.28.2"
+tqdm = "^4.65.0"
+gzip-stream = "^1.2.0"
+asyncio = "^3.4.3"
+aiohttp = "^3.8.4"
+jupyter = "^1.0.0"
+ijson = "^3.2.0.post0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

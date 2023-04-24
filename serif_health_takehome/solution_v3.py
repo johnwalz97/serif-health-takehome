@@ -122,7 +122,7 @@ async def download_file(url: str):
                 unit="B",
                 unit_scale=True,
                 unit_divisor=1024,
-                total=int(resp.headers["Content-Length"]),
+                total=int(resp.headers["Content-Length"]) * 2, # hacky way to guess the uncompressed size
                 desc="Downloading",
             )
 

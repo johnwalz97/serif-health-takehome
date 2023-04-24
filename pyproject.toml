@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "serif_health_takehome"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4.0"
 requests = "^2.28.2"
 tqdm = "^4.65.0"
 gzip-stream = "^1.2.0"

@@ -18,20 +18,27 @@ LOOKUP_URL = (
 
 async def process_ein(ein):
     urls = set()
+    data = None
 
     async with ClientSession() as session:
-        async with session.get(LOOKUP_URL.format(ein=ein)) as resp:
-            if resp.status != 200:
-                # TODO actually handle this
-                print(f"Failed to download file: {resp.status}")
-                return urls
+        try:
+            async with session.get(LOOKUP_URL.format(ein=ein)) as resp:
+                if resp.status != 200:
+                    # TODO actually handle this
+                    print(f"Failed to download file: {resp.status}")
+                    return urls
 
-            text = await resp.text()
+                text = await resp.text()
 
-            if "_PPO_" not in text:
-                return urls
+                if "_PPO_" not in text:
+                    return urls
 
-            data = json.loads(text)
+                data = json.loads(text)
+        except Exception as e:
+            with open("failed_eins.txt", "a") as f:
+                f.write(LOOKUP_URL.format(ein=ein) + "\n")
+            print(f"Failed to process EIN {ein}: {e}")
+            return await process_ein(ein)
 
     key = "In-Network Negotiated Rates Files"
     if key in data:

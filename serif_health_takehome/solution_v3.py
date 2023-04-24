@@ -80,23 +80,34 @@ async def process_multiple_lines(lines):
     return await asyncio.gather(*tasks)
 
 
-def worker(input_queue, identifier):
-    with open(f"ny_urls_{identifier}.txt", "a") as f:
-        while True:
-            lines = []
-            for _ in range(100):
-                line = input_queue.get()
-                if line is None:
-                    continue
-                lines.append(line)
+def worker(input_queue: multiprocessing.Queue, identifier):
+    urls = set()
 
-            if not lines:
+    done = False
+    while not done:
+        lines = []
+        for _ in range(100):
+            line = input_queue.get()
+
+            if line is None:
+                print("this shoudn't happen")
+                continue
+
+            if line == "DONE":
+                done = True
                 break
 
-            urls_lists = asyncio.run(process_multiple_lines(lines))
+            lines.append(line)
 
-            for urls in urls_lists:
-                f.write("\n".join(urls))
+        if not lines:
+            break
+
+        urls_lists = asyncio.run(process_multiple_lines(lines))
+        for urls_list in urls_lists:
+            urls |= urls_list
+
+    with open(f"ny_urls_{identifier}.txt", "w") as f:
+        f.write("\n".join(urls))
 
 
 async def download_file(url: str):
@@ -157,9 +168,11 @@ async def download_file(url: str):
 
             progress_bar.close()
 
+    print("Finished downloading file...")
+
     # Send sentinel values to terminate the workers
     for _ in range(num_workers):
-        input_queue.put(None)
+        input_queue.put("DONE")
 
     # Wait for all workers to finish
     for w in workers:
@@ -168,14 +181,18 @@ async def download_file(url: str):
     # collect urls into one file
     ny_urls = set()
 
+    print("Collecting URLs...")
     for filename in os.listdir("."):
         if filename.startswith("ny_urls_"):
             with open(filename, "r") as f:
                 ny_urls.update(f.read().splitlines())
             os.remove(filename)
 
+    print("Writing URLs to file...")
     with open("ny_urls.txt", "w") as f:
         f.write("\n".join(ny_urls))
+
+    print("Done!")
 
 
 if __name__ == "__main__":
